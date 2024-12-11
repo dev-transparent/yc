@@ -1,0 +1,13 @@
+name: yc
+version: 0.1.0
+
+authors:
+  - Gary Mardell <info@garymardell.co.uk>
+
+crystal: '>= 1.14.0'
+
+license: MIT
+
+dependencies:
+  kemal:
+    github: kemalcr/kemal

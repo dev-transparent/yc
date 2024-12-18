@@ -3,6 +3,7 @@ module Yc
     abstract struct Content
       abstract def clock_length : UInt64
       abstract def split(offset) : Tuple(Content, Content)
+      abstract def countable? : Bool
 
       def self.from_reader(reader : Reader, tag_type : UInt8)
         case tag_type
@@ -47,6 +48,10 @@ module Yc
       def split(offset) : Tuple(Content, Content)
         {DeletedContent.new(offset), DeletedContent.new(@length - offset)}
       end
+
+      def countable? : Bool
+        false
+      end
     end
 
     struct JSONContent < Content
@@ -63,6 +68,10 @@ module Yc
 
         {JSONContent.new(left), JSONContent.new(right)}
       end
+
+      def countable? : Bool
+        true
+      end
     end
 
     struct BinaryContent < Content
@@ -75,6 +84,10 @@ module Yc
 
       def split(offset) : Tuple(Content, Content)
         raise "Unsupported split on binary"
+      end
+
+      def countable? : Bool
+        true
       end
     end
 
@@ -94,6 +107,10 @@ module Yc
 
         {StringContent.new(left), StringContent.new(right)}
       end
+
+      def countable? : Bool
+        true
+      end
     end
 
     struct EmbedContent < Content
@@ -103,6 +120,10 @@ module Yc
 
       def split(offset) : Tuple(Content, Content)
         raise "Unsupported split on embed"
+      end
+
+      def countable? : Bool
+        true
       end
     end
 
@@ -117,6 +138,10 @@ module Yc
       def split(offset) : Tuple(Content, Content)
         raise "Unsupported split on format"
       end
+
+      def countable? : Bool
+        false
+      end
     end
 
     struct TypeContent < Content
@@ -129,6 +154,10 @@ module Yc
 
       def split(offset) : Tuple(Content, Content)
         raise "Unsupported split on type"
+      end
+
+      def countable? : Bool
+        true
       end
     end
 
@@ -146,6 +175,10 @@ module Yc
 
         {AnyContent.new(left), AnyContent.new(right)}
       end
+
+      def countable? : Bool
+        true
+      end
     end
 
     struct DocContent < Content
@@ -158,6 +191,10 @@ module Yc
 
       def split(offset) : Tuple(Content, Content)
         raise "Unsupported split on doc"
+      end
+
+      def countable? : Bool
+        true
       end
     end
   end

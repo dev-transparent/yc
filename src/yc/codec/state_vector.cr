@@ -40,6 +40,10 @@ module Yc
 
         diff
       end
+
+      def contains(id : Id)
+        id.clock <= (map[id.client]? || 0u64)
+      end
     end
   end
 end

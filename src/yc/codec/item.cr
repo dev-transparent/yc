@@ -20,14 +20,6 @@ module Yc
       def self.from_reader(reader : Reader, id : Id, info : UInt8, first_5_bit : UInt8)
         flags = ItemFlag.new(info)
 
-        pp flags
-        # puts flags == ItemFlag::HasLeftId
-        # puts flags == ItemFlag::HasRightId
-        # puts flags == ItemFlag::HasParentSub
-        # puts flags == ItemFlag::HasSibling
-        # puts flags != ItemFlag::HasSibling
-        # puts flags == ItemFlag::Deleted
-
         origin_left_id = if flags.check(ItemFlag::HasLeftId)
           Id.from_reader(reader)
         end
@@ -37,14 +29,10 @@ module Yc
         end
 
         parent = if flags.not(ItemFlag::HasSibling)
-          puts "reading parent"
           has_parent = reader.read_u64 == 1
 
-          puts "has_parent #{has_parent}"
-
           if has_parent
-            puts reader.read_u64
-            # puts reader.read_string.not_nil!
+            reader.read_string.not_nil!
           else
             Id.from_reader(reader)
           end
@@ -56,17 +44,27 @@ module Yc
           reader.read_string.not_nil!
         end
 
-        Item.new(
+        item = Item.new(
           id: id,
           origin_left_id: origin_left_id,
           origin_right_id: origin_right_id,
           left: nil,
           right: nil,
-          parent: nil,
+          parent: parent,
           parent_sub: parent_sub,
           content: Content.from_reader(reader, first_5_bit),
-          flags: flags
+          flags: ItemFlag.new(0)
         )
+
+        if item.content.countable?
+          item.flags.set(ItemFlag::Countable)
+        end
+
+        if item.content == DeletedContent
+          item.flags.set(ItemFlag::Deleted)
+        end
+
+        item
       end
 
       def to_buffer(buffer : Buffer)
@@ -76,20 +74,10 @@ module Yc
       def length
         content.clock_length
       end
+
+      def last_id : Id
+        Id.new(id.client, id.clock + length - 1)
+      end
     end
   end
 end
-
-# pub id: Id,
-#     pub origin_left_id: Option<Id>,
-#     pub origin_right_id: Option<Id>,
-#     #[cfg_attr(all(test, not(loom)), proptest(value = "Somr::none()"))]
-#     pub left: ItemRef,
-#     #[cfg_attr(all(test, not(loom)), proptest(value = "Somr::none()"))]
-#     pub right: ItemRef,
-#     pub parent: Option<Parent>,
-#     #[cfg_attr(all(test, not(loom)), proptest(value = "Option::<SmolStr>::None"))]
-#     pub parent_sub: Option<SmolStr>,
-#     pub content: Content,
-#     #[cfg_attr(all(test, not(loom)), proptest(value = "ItemFlag::default()"))]
-#     pub flags: ItemFlag,

@@ -47,30 +47,14 @@ ws "/:room" do |socket, env|
 
         socket.send reply_buffer.to_slice
       when .step2?
-        puts "step 2"
         update = Yc::Codec::Update.from_reader(Yc::Reader.new(message.bytes))
 
-        pp update
-        # let len = update.len();
-        # if let Ok(update) = Update::read(&mut RawDecoder::new(&update)) {
-        #     debug!("step2 apply update: {len}");
-        #     if let Err(e) = doc.apply_update(update) {
-        #         warn!("failed to apply update: {:?}", e);
-        #     }
-        # }
-        # None
+        doc.apply_update(update)
       when .update?
-        puts "update"
-        # puts binary.hexdump
-        # puts binary.hexstring
-        begin
-          update = Yc::Codec::Update.from_reader(Yc::Reader.new(message.bytes))
+        update = Yc::Codec::Update.from_reader(Yc::Reader.new(message.bytes))
+        before_state = doc.store.build_state_vector
+        doc.apply_update(update)
 
-          pp update
-        rescue ex : Exception
-          pp ex
-          puts "error"
-        end
 
         # let before_state = doc.get_state_vector();
         # doc.apply_update_from_binary_v1(update)
@@ -119,4 +103,4 @@ ws "/:room" do |socket, env|
   # end
 end
 
-Kemal.run(port: 8080)
+Kemal.run(port: 9080)

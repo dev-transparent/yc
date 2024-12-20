@@ -1,38 +1,70 @@
+require "./any"
+
 module Yc
   module Codec
     abstract struct Content
+      enum ContentType
+        Deleted = 1
+        JSON = 2
+        Binary = 3
+        String = 4
+        Embed = 5
+        Format = 6
+        Type = 7
+        Any = 8
+        Doc = 9
+      end
+
       abstract def clock_length : UInt64
       abstract def split(offset) : Tuple(Content, Content)
       abstract def countable? : Bool
 
       def self.from_reader(reader : Reader, tag_type : UInt8)
-        case tag_type
-        when 1
+      case ContentType.from_value(tag_type)
+        in .deleted?
           DeletedContent.new(reader.read_u64.not_nil!)
-        when 2
+        in .json?
           length = reader.read_u64.not_nil!
-          strings = length.times.to_a.map do
+          strings = Array(String?).new(length)
+
+          length.times do
             content = reader.read_string.not_nil!
-            content == "undefined" ? nil : content
+            content = content == "undefined" ? nil : content
+            strings << content
           end
 
           JSONContent.new(strings)
-        when 3
+        in .binary?
           BinaryContent.new(reader.read_bytes.not_nil!)
-        when 4
+        in .string?
           StringContent.new(reader.read_string.not_nil!)
-        when 5
+        in .embed?
           raise "Unsupported type"
-        when 6
+        in .format?
           raise "Unsupported type"
-        when 7
-          raise "Unsupported type"
-        when 8
-          raise "Unsupported type"
-        when 9
-          raise "Unsupported type"
-        else
-          raise "Unsupported type"
+        in .type?
+          kind = TypeKind.from_value(reader.read_u64.not_nil!)
+          name = case kind
+          when TypeKind::XMLElement, TypeKind::XMLHook
+            reader.read_string.not_nil!
+          else
+            nil
+          end
+
+          TypeContent.new(Type.new(kind, name))
+        in .any?
+          length = reader.read_u64.not_nil!
+          values = Array(Any).new(length)
+
+          length.times do
+            values << Any.from_reader(reader)
+          end
+
+          AnyContent.new(values)
+        in .doc?
+          guid = reader.read_string.not_nil!
+          # options =
+          DocContent.new(guid, "")
         end
       end
     end
@@ -145,7 +177,7 @@ module Yc
     end
 
     struct TypeContent < Content
-      def initialize(@type_ref : String) # TODO: Fix
+      def initialize(@type : Type) # TODO: Fix
       end
 
       def clock_length : UInt64
@@ -162,7 +194,7 @@ module Yc
     end
 
     struct AnyContent < Content
-      def initialize(@value : Array(String)) # TODO: Fix
+      def initialize(@value : Array(Any))
       end
 
       def clock_length : UInt64

@@ -27,15 +27,12 @@ ws "/:room" do |socket, env|
 
       case message.type
       when .step1?
-        pp "step 1"
+        puts "step 1"
         state_vector = Yc::Codec::StateVector.from_reader(Yc::Reader.new(message.bytes))
-        pp state_vector
 
-        update = doc.encode_state_as_update_v1(state_vector)
+        update = doc.update_from_state(state_vector)
         update_buffer = Yc::Buffer.new
         update.to_buffer(update_buffer)
-
-        pp update
 
         reply = Yc::Protocol::DocMessage.new(
           type: Yc::Protocol::DocMessage::Type::Step2,
@@ -49,11 +46,17 @@ ws "/:room" do |socket, env|
       when .step2?
         update = Yc::Codec::Update.from_reader(Yc::Reader.new(message.bytes))
 
-        doc.apply_update(update)
+        puts "step 2"
+        pp update
+
+        doc.apply(update)
       when .update?
         update = Yc::Codec::Update.from_reader(Yc::Reader.new(message.bytes))
+        puts "update"
+        pp update
+
         before_state = doc.store.build_state_vector
-        doc.apply_update(update)
+        doc.apply(update)
 
 
         # let before_state = doc.get_state_vector();

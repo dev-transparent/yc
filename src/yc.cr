@@ -6,5 +6,6 @@ module Yc
 end
 
 require "./yc/protocol"
+require "./yc/type"
 require "./yc/codec"
 require "./yc/doc"

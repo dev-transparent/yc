@@ -1,44 +1,29 @@
 require "uuid"
 require "./store"
 require "./publisher"
+require "./type"
 
 module Yc
   class Doc
     getter guid : UUID
-
     getter store : Store
-    private getter publisher : Publisher
+    getter publisher : Publisher
 
     def initialize(@guid)
       @store = Store.new
       @publisher = Publisher.new(store)
     end
 
-    def encode_state_as_update_v1(sv : Codec::StateVector)
-      store.diff_state_vector(sv, true)
+    # Generate an update from a client provided state with everything they are missing
+    def update_from_state(state : Codec::StateVector)
+      Codec::Update.new(
+        store.updates_from_state(state), # Get everything that has been updated
+        store.build_delete_set # Get everything that has been deleted
+      )
     end
 
-    def apply_update(update : Codec::Update)
-      retry = false
+    def apply(update : Codec::Update)
 
-      loop do
-        iterator = Codec::UpdateIterator.new(update, store.build_state_vector)
-        iterator.each do |(node, offset)|
-            case node
-            when Codec::ItemNode
-              store.repair(node.item)
-            end
-
-            # store.integrate(node, offset)
-        end
-
-        # iterator = DeleteSetIterator.new(update.delete_set, sv)
-        # iterator.each do |(client, range)|
-        #   # store.delete_range(client, range)
-        # end
-
-
-      end
     end
   end
 end

@@ -1,6 +1,6 @@
 module Yc
   module Types
-    class Map < Type
+    class Map
       def keys
       end
 

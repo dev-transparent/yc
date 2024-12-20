@@ -27,8 +27,9 @@ module Yc
       end
 
       abstract def id : Id
-      abstract def length
-      abstract def split_at(offset)
+      abstract def length : UInt64
+      abstract def deleted? : Bool
+      abstract def split_at(offset) : Tuple(Node, Node)
       abstract def to_buffer(buffer : Buffer)
 
       def clock
@@ -50,11 +51,15 @@ module Yc
         node_length.id
       end
 
-      def length
+      def length : UInt64
         node_length.length
       end
 
-      def split_at(offset)
+      def deleted? : Bool
+        false
+      end
+
+      def split_at(offset) : Tuple(Node, Node)
         raise "Item not splittable"
       end
 
@@ -74,11 +79,15 @@ module Yc
         node_length.id
       end
 
-      def length
+      def length : UInt64
         node_length.length
       end
 
-      def split_at(offset)
+      def deleted? : Bool
+        false
+      end
+
+      def split_at(offset) : Tuple(Node, Node)
         raise "Item not splittable"
       end
 
@@ -98,11 +107,15 @@ module Yc
         item.id
       end
 
-      def length
+      def length : UInt64
         item.length
       end
 
-      def split_at(offset) : Tuple(ItemNode, ItemNode)
+      def deleted? : Bool
+        item.flags.check(ItemFlag::Deleted)
+      end
+
+      def split_at(offset) : Tuple(Node, Node)
         id = item.id
         right_id = Id.new(id.client, id.clock + offset)
 
